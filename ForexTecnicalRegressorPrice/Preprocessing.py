@@ -68,11 +68,43 @@ def transform_dataset(data, create_future_price):
 
     return output_df
 
+import yfinance as yf
+import pandas as pd
+
+def gather_additional_features(result_df):
+    # Ensure 'Date' column is in datetime format
+    result_df['Date'] = pd.to_datetime(result_df['Date'])
+
+    # Get the date range
+    start_date = result_df['Date'].min()
+    end_date = result_df['Date'].max()
+
+    # Fetch gold prices (GC=F is the ticker for gold futures)
+    gold = yf.download("GC=F", start=start_date, end=end_date)
+    gold = gold['Close'].rename('Gold_Price').reset_index()
+    gold.columns = ['Date', 'Gold_Price']
+
+    # Fetch crude oil prices (CL=F is the ticker for crude oil futures)
+    oil = yf.download("CL=F", start=start_date, end=end_date)
+    oil = oil['Close'].rename('Oil_Price').reset_index()
+    oil.columns = ['Date', 'Oil_Price']
+
+    # Combine the new data with the existing DataFrame
+    result_df = result_df.merge(gold, on='Date', how='left')
+    result_df = result_df.merge(oil, on='Date', how='left')
+
+    # Forward fill any missing values (weekends and holidays)
+    result_df['Gold_Price'] = result_df['Gold_Price'].ffill()
+    result_df['Oil_Price'] = result_df['Oil_Price'].ffill()
+
+    return result_df
+
 
 def main_preprocessing(data):
 
     # Fill NaN or Inf values with the average nearby values
     data = data.replace([np.inf, -np.inf], np.nan)
+    #data = gather_additional_features(data)
     train_data, val_data, test_data = split_data(data)
 
     train_transformed = transform_dataset(train_data, False)

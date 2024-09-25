@@ -22,7 +22,7 @@ years = 10
 n_assets = 500
 n_weeks = 1
 
-index = "DollarIndex"
+index = "EUROvsX"
 
 # Define the folder path to save data
 folder_name = f'data/{index}_{years}y_n{n_assets}'

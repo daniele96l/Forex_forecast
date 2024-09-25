@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 import os
+import matplotlib.pyplot as plt
 
 import pandas as pd
 import numpy as np
@@ -12,14 +13,20 @@ from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.model_selection import train_test_split
 from sklearn.utils import resample
 
+
 # Suppress LightGBM warnings
 warnings.filterwarnings("ignore", category=UserWarning, module="lightgbm")
 
-N_TRIALS = 5  # Number of trials for Optuna optimization
+N_TRIALS = 50  # Number of trials for Optuna optimization
 
 def plot_scatter(y_true, y_pred):
     plt.figure(figsize=(10, 6))
     plt.scatter(y_true, y_pred, alpha=0.5)
+
+    #Mask removing the top 5% and bottom 5% of the outliers
+    """mask = (y_true > np.percentile(y_true, 20)) & (y_true < np.percentile(y_true, 80))
+    y_true = y_true[mask]
+    y_pred = y_pred[mask]"""
 
     # Calculate the best fit line
     slope, intercept = np.polyfit(y_true, y_pred, 1)
@@ -68,7 +75,7 @@ def objective(trial, X, y):
 
     params = {
         'learning_rate': trial.suggest_float('learning_rate', 1e-3, 1.0, log=True),
-        'n_estimators': trial.suggest_int('n_estimators', 100, 2000),
+        'n_estimators': trial.suggest_int('n_estimators', 5, 200),
         'max_depth': trial.suggest_int('max_depth', 1, 20),
         'num_leaves': trial.suggest_int('num_leaves', 2, 500),
         'min_child_samples': trial.suggest_int('min_child_samples', 1, 200),
@@ -95,21 +102,16 @@ def early_stopping_callback(study, trial):
 def train_model(X_train_val, y_train_val):
     study = optuna.create_study(direction='minimize', pruner=optuna.pruners.MedianPruner())
     study.optimize(lambda trial: objective(trial, X_train_val, y_train_val), n_trials=N_TRIALS, callbacks=[early_stopping_callback])
+    optuna.visualization.plot_optimization_history(study)
+    plt.show()
 
-    print("Best trial:")
     trial = study.best_trial
-
     best_params = trial.params
-    print("Best params:")
-    print(best_params)
-    #{'learning_rate': 0.10493324279545893, 'n_estimators': 814, 'max_depth': 10, 'num_leaves': 233, 'min_child_samples': 5, 'reg_alpha': 2.795208835566607e-08, 'reg_lambda': 0.007522195042940475}
-    #Save the best parameters
+
     joblib.dump(best_params, 'best_params.joblib')
     best_model = LGBMRegressor(**best_params, random_state=42)
-    # Split the data for training and validation
-    X_train, X_val, y_train, y_val = train_test_split(X_train_val, y_train_val, test_size=0.2, random_state=42)
 
-    # Prepare evaluation set
+    X_train, X_val, y_train, y_val = train_test_split(X_train_val, y_train_val, test_size=0.2, random_state=42)
     eval_set = [(X_train, y_train), (X_val, y_val)]
 
     # Fit the model with evaluation set and early stopping
@@ -199,12 +201,7 @@ def main_forecasting(training, validation, test,MODEL_PATH, MODE, index, years, 
         save_model(model, model_filename)
     elif MODE == 'load':
         # Assume the latest model file is to be loaded
-        import glob
-        model_files = MODEL_PATH
-        if not model_files:
-            raise FileNotFoundError(f"No model file found for {index} with {n_assets} assets and {years} years")
-        latest_model = max(model_files, key=os.path.getctime)
-        model = load_model(latest_model)
+        model = load_model(MODEL_PATH)
 
     test_predictions, X_test = evaluate_model(model, X_test, y_test)
 
