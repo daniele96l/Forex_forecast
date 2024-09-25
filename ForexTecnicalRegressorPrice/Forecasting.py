@@ -15,7 +15,7 @@ from sklearn.utils import resample
 # Suppress LightGBM warnings
 warnings.filterwarnings("ignore", category=UserWarning, module="lightgbm")
 
-N_TRIALS = 50  # Number of trials for Optuna optimization
+N_TRIALS = 5  # Number of trials for Optuna optimization
 
 def plot_scatter(y_true, y_pred):
     plt.figure(figsize=(10, 6))

@@ -115,12 +115,6 @@ def main_forecasting(test,n_weeks,MODEL_PATH,n_bins):
         else:
             plt.plot(portfolios[portfolio]["Cumprod"], label=label, color=color_map[label], alpha=0.7)
 
-    # Calculate and plot the average of all portfolios
-    avg_portfolio = pd.DataFrame(index=portfolios[0].index)
-    for portfolio in portfolios.values():
-        avg_portfolio = avg_portfolio.join(portfolio["Cumprod"], rsuffix=f'_{portfolio}')
-    avg_portfolio['Average'] = avg_portfolio.mean(axis=1)
-    plt.plot(avg_portfolio['Average'], label='THE MARKET', color='black', linewidth=4)
 
     # Add vertical lines for rebalancing points
     rebalance_dates = portfolios[0].index[::forecasting_horizon]
@@ -146,6 +140,11 @@ def main_forecasting(test,n_weeks,MODEL_PATH,n_bins):
     plt.show()
 
     best_portfolio_long = portfolios[n_bins-1]
+    second_portfolio_long = portfolios[n_bins-2]
+    best_portfolio_short = portfolios[0]
+    second_portfolio_short = portfolios[1]
+    middle_portfolio = portfolios[2]
+
     date = last_picks.iloc[-1]['Date']
     formatted_date = date.strftime('%Y-%m-%d') if isinstance(date, datetime) else date
     print(f"Best Picks to buy on date {formatted_date}, valid up to one month:")
