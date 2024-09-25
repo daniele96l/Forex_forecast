@@ -75,7 +75,7 @@ def objective(trial, X, y):
 
     params = {
         'learning_rate': trial.suggest_float('learning_rate', 1e-3, 1.0, log=True),
-        'n_estimators': trial.suggest_int('n_estimators', 5, 200),
+        'n_estimators': trial.suggest_int('n_estimators', 100, 1000),
         'max_depth': trial.suggest_int('max_depth', 1, 20),
         'num_leaves': trial.suggest_int('num_leaves', 2, 500),
         'min_child_samples': trial.suggest_int('min_child_samples', 1, 200),
@@ -102,8 +102,8 @@ def early_stopping_callback(study, trial):
 def train_model(X_train_val, y_train_val):
     study = optuna.create_study(direction='minimize', pruner=optuna.pruners.MedianPruner())
     study.optimize(lambda trial: objective(trial, X_train_val, y_train_val), n_trials=N_TRIALS, callbacks=[early_stopping_callback])
-    optuna.visualization.plot_optimization_history(study)
-    plt.show()
+    fig = optuna.visualization.plot_optimization_history(study)
+    fig.show()
 
     trial = study.best_trial
     best_params = trial.params
