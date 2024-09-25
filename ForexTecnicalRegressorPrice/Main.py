@@ -14,7 +14,7 @@ import Fees_simulator
 data_gathering = False
 feature_engineering = False
 preprocessing = False
-forecasting = True
+forecasting = False
 generate_picks = True
 real_trading = False
 

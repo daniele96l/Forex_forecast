@@ -44,6 +44,7 @@ def main_forecasting(test,n_weeks,MODEL_PATH,n_bins):
     model = load_model(MODEL_PATH)
 
     test_predictions, X_test = run_model(model, X_test)
+    #Fill zeros with a random small number
 
     # Re-combine the test_date and predictions
     test_predictions = pd.DataFrame(test_predictions, columns=['Price_Prediction'])
@@ -56,9 +57,14 @@ def main_forecasting(test,n_weeks,MODEL_PATH,n_bins):
     test_predictions = test_predictions.pct_change().dropna()
     stock_returns = stock_returns.pct_change().dropna()
 
+    epsilon = 1e-8  # Small number to avoid division by zero
+    random_small = np.random.uniform(epsilon, epsilon * 10, size=test_predictions.shape)
+    test_predictions = test_predictions.mask(test_predictions == 0, random_small)
+
+
     forecast_data = test_predictions.reset_index().melt(id_vars='Date', var_name='Stock', value_name='Price_Prediction')
 
-    # Create 20 portfolios based on Price_Prediction
+    # Create N portfolios based on Price_Prediction
     forecast_data['Portfolio'] = forecast_data.groupby('Date')['Price_Prediction'].transform(
         lambda x: pd.qcut(x, n_bins, labels=False, duplicates='drop')
     )

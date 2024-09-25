@@ -96,7 +96,7 @@ def objective(trial, X, y):
     return mape
 
 def early_stopping_callback(study, trial):
-    if study.best_trial.number + 10 < trial.number:
+    if study.best_trial.number + 5 < trial.number:
         study.stop()
 
 def train_model(X_train_val, y_train_val):
@@ -112,27 +112,6 @@ def train_model(X_train_val, y_train_val):
     best_model = LGBMRegressor(**best_params, random_state=42)
 
     X_train, X_val, y_train, y_val = train_test_split(X_train_val, y_train_val, test_size=0.2, random_state=42)
-    eval_set = [(X_train, y_train), (X_val, y_val)]
-
-    # Fit the model with evaluation set and early stopping
-    best_model.fit(X_train, y_train,
-                   eval_set=eval_set,
-                   eval_metric='mape')  # Set verbose to 100 to see output every 100 iterations
-
-    # Extract training and validation scores
-    train_scores = best_model.evals_result_['training']['mape']
-    val_scores = best_model.evals_result_['valid_1']['mape']
-
-    # Plot training and validation errors
-    plt.figure(figsize=(10, 6))
-    plt.plot(train_scores, label='Training error')
-    plt.plot(val_scores, label='Validation error')
-    plt.axvline(x=best_model.best_iteration_, color='r', linestyle='--', label='Best iteration')
-    plt.xlabel('Iterations')
-    plt.ylabel('Error metric')
-    plt.title('Best Model: Training and Validation Error')
-    plt.legend()
-    plt.show()
 
     # Fit the final model on all data
     best_model.fit(X_train_val, y_train_val)
@@ -142,6 +121,7 @@ def train_model(X_train_val, y_train_val):
 
 
 def evaluate_model(model, X_test, y_test):
+
     test_predictions = model.predict(X_test)
     non_zero_indices = y_test != 0
     mape = np.mean(np.abs((y_test[non_zero_indices] - test_predictions[non_zero_indices]) / y_test[non_zero_indices])) * 100
